@@ -1,8 +1,10 @@
 using Microsoft.Web.WebView2.Core;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using TerminalHost.Api;
 using TerminalHost.Core;
 using TerminalHost.Infrastructure;
@@ -11,6 +13,9 @@ namespace TerminalHost;
 
 public partial class MainWindow : Window
 {
+    private const uint GmemMoveable = 0x0002;
+    private const uint CfUnicodeText = 13;
+
     private static readonly string DisplayVersion =
         typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
 
@@ -259,18 +264,96 @@ public partial class MainWindow : Window
             MessageBoxImage.Information);
     }
 
-    private void CopyApiButton_Click(object sender, RoutedEventArgs e)
+    private async void CopyApiButton_Click(object sender, RoutedEventArgs e)
     {
-        Clipboard.SetText($"ws://127.0.0.1:{_settings.ApiPort}/ws?token={_settings.ApiToken}");
-        StatusText.Text = "WebSocket 地址和令牌已复制";
+        await CopyToClipboardAsync(
+            $"ws://127.0.0.1:{_settings.ApiPort}/ws?token={_settings.ApiToken}",
+            "WebSocket 地址和令牌已复制");
     }
 
-    private void CopySessionIdButton_Click(object sender, RoutedEventArgs e)
+    private async void CopySessionIdButton_Click(object sender, RoutedEventArgs e)
     {
         if (_activeSessionId is null) return;
-        Clipboard.SetText(_activeSessionId);
-        StatusText.Text = "Session ID 已复制";
+        await CopyToClipboardAsync(_activeSessionId, "Session ID 已复制");
     }
+
+    private async Task CopyToClipboardAsync(string text, string successMessage)
+    {
+        for (var attempt = 1; attempt <= 5; attempt++)
+        {
+            if (TrySetClipboardText(text))
+            {
+                StatusText.Text = successMessage;
+                return;
+            }
+
+            if (attempt < 5)
+                await Task.Delay(attempt * 80);
+        }
+
+        StatusText.Text = "复制失败：剪贴板正被其他程序占用，请稍后重试";
+    }
+
+    private bool TrySetClipboardText(string text)
+    {
+        var owner = new WindowInteropHelper(this).Handle;
+        if (!OpenClipboard(owner)) return false;
+
+        var memory = IntPtr.Zero;
+        try
+        {
+            if (!EmptyClipboard()) return false;
+
+            memory = GlobalAlloc(GmemMoveable, new UIntPtr((uint)((text.Length + 1) * sizeof(char))));
+            if (memory == IntPtr.Zero) return false;
+
+            var target = GlobalLock(memory);
+            if (target == IntPtr.Zero) return false;
+            try
+            {
+                var characters = text.ToCharArray();
+                Marshal.Copy(characters, 0, target, characters.Length);
+                Marshal.WriteInt16(target, characters.Length * sizeof(char), 0);
+            }
+            finally
+            {
+                GlobalUnlock(memory);
+            }
+
+            if (SetClipboardData(CfUnicodeText, memory) == IntPtr.Zero) return false;
+            memory = IntPtr.Zero;
+            return true;
+        }
+        finally
+        {
+            if (memory != IntPtr.Zero) GlobalFree(memory);
+            CloseClipboard();
+        }
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool OpenClipboard(IntPtr newOwner);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool EmptyClipboard();
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetClipboardData(uint format, IntPtr memory);
+
+    [DllImport("user32.dll")]
+    private static extern bool CloseClipboard();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GlobalAlloc(uint flags, UIntPtr bytes);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GlobalLock(IntPtr memory);
+
+    [DllImport("kernel32.dll")]
+    private static extern bool GlobalUnlock(IntPtr memory);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GlobalFree(IntPtr memory);
 
     private void UpdateSessionId(string? sessionId)
     {

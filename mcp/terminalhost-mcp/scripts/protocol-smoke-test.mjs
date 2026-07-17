@@ -6,7 +6,8 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const entry = join(root, "dist", "src", "index.js");
+const entry = process.env.TERMINALHOST_MCP_TEST_ENTRY ?? join(root, "dist", "src", "index.js");
+const nodeCommand = process.env.TERMINALHOST_MCP_TEST_NODE ?? process.execPath;
 
 function assertTools(tools) {
   const names = new Set(tools.tools.map((tool) => tool.name));
@@ -39,6 +40,21 @@ async function exerciseCommand(client) {
     throw new Error(`terminal_execute result was incomplete: ${text}`);
   }
   console.log("terminal_execute: completion marker and output ok");
+}
+
+async function exerciseSnapshot(client) {
+  const sessionId = process.env.TERMINALHOST_TEST_SNAPSHOT_SESSION_ID;
+  if (!sessionId) return;
+  const response = await client.callTool({
+    name: "terminal_snapshot",
+    arguments: { sessionId, maxChars: 10_000 }
+  });
+  if (response.isError) throw new Error("terminal_snapshot returned an MCP error");
+  const result = parseToolJson(response);
+  if (result.sessionId !== sessionId || typeof result.data !== "string") {
+    throw new Error(`terminal_snapshot result was invalid: ${JSON.stringify(result)}`);
+  }
+  console.log("terminal_snapshot: requested session read ok");
 }
 
 function parseToolJson(response) {
@@ -78,7 +94,7 @@ async function exerciseCreatedCmdSession(client) {
 
 async function testStdio() {
   const transport = new StdioClientTransport({
-    command: process.execPath,
+    command: nodeCommand,
     args: [entry, "--transport", "stdio"],
     stderr: "pipe"
   });
@@ -86,6 +102,7 @@ async function testStdio() {
   try {
     await client.connect(transport);
     await exercise(client, "stdio");
+    await exerciseSnapshot(client);
     await exerciseCommand(client);
     await exerciseCreatedCmdSession(client);
   } finally {
@@ -110,7 +127,7 @@ async function waitForHealth(url, child) {
 
 async function testHttp() {
   const port = 18_766;
-  const child = spawn(process.execPath, [entry, "--transport", "http", "--port", String(port)], {
+  const child = spawn(nodeCommand, [entry, "--transport", "http", "--port", String(port)], {
     cwd: root,
     stdio: ["ignore", "ignore", "pipe"],
     windowsHide: true
@@ -141,7 +158,7 @@ async function testHttp() {
 }
 
 async function testHttpSafety() {
-  const unsafe = spawn(process.execPath, [entry, "--transport", "http", "--host", "0.0.0.0"], {
+  const unsafe = spawn(nodeCommand, [entry, "--transport", "http", "--host", "0.0.0.0"], {
     cwd: root,
     stdio: ["ignore", "ignore", "pipe"],
     windowsHide: true
@@ -155,7 +172,7 @@ async function testHttpSafety() {
 
   const port = 18_767;
   const token = "terminalhost-mcp-integration-test-token";
-  const protectedServer = spawn(process.execPath, [entry, "--transport", "http", "--port", String(port)], {
+  const protectedServer = spawn(nodeCommand, [entry, "--transport", "http", "--port", String(port)], {
     cwd: root,
     env: { ...process.env, TERMINALHOST_MCP_AUTH_TOKEN: token },
     stdio: ["ignore", "ignore", "pipe"],

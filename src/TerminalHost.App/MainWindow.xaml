@@ -33,6 +33,12 @@
                 </Grid.ColumnDefinitions>
 
                 <ComboBox x:Name="ShellComboBox" Grid.Column="0" Height="32" Margin="0,0,8,0" SelectedIndex="0">
+                    <ComboBox.Resources>
+                        <Style TargetType="ComboBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="VerticalContentAlignment" Value="Center" />
+                        </Style>
+                    </ComboBox.Resources>
                     <ComboBoxItem Content="PowerShell 7 (pwsh)" Tag="pwsh" />
                     <ComboBoxItem Content="Windows PowerShell 5.1" Tag="powershell" />
                     <ComboBoxItem Content="CMD" Tag="cmd" />
