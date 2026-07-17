@@ -1,0 +1,79 @@
+<Window x:Class="TerminalHost.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="TerminalHost v1.0.0" Icon="Assets/terminalhost.ico" Width="1180" Height="760"
+        MinWidth="760" MinHeight="480"
+        Background="#111318">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Menu Grid.Row="0" Background="#111318" Foreground="#D7DBE4" Padding="4,2">
+            <MenuItem Header="文件">
+                <MenuItem Header="退出" Click="ExitMenuItem_Click" />
+            </MenuItem>
+            <MenuItem Header="帮助">
+                <MenuItem Header="关于 TerminalHost" Click="AboutMenuItem_Click" />
+            </MenuItem>
+        </Menu>
+
+        <Border Grid.Row="1" Background="#1A1D24" Padding="10" BorderBrush="#2A2E38" BorderThickness="0,1,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <ComboBox x:Name="ShellComboBox" Grid.Column="0" Height="32" Margin="0,0,8,0" SelectedIndex="0">
+                    <ComboBoxItem Content="PowerShell 7 (pwsh)" Tag="pwsh" />
+                    <ComboBoxItem Content="Windows PowerShell 5.1" Tag="powershell" />
+                    <ComboBoxItem Content="CMD" Tag="cmd" />
+                </ComboBox>
+
+                <TextBox x:Name="WorkingDirectoryTextBox" Grid.Column="1" Height="32" Margin="0,0,8,0"
+                         VerticalContentAlignment="Center" ToolTip="工作目录" />
+                <Button x:Name="StartButton" Grid.Column="2" Content="启动/重启" Height="32" Padding="14,0" Margin="0,0,8,0" Click="StartButton_Click" />
+                <Button x:Name="StopButton" Grid.Column="3" Content="停止" Height="32" Padding="14,0" Margin="0,0,8,0" Click="StopButton_Click" />
+                <Button x:Name="ClearButton" Grid.Column="4" Content="清屏" Height="32" Padding="14,0" Click="ClearButton_Click" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Margin="0" Background="#0D0F13">
+            <wv2:WebView2 x:Name="TerminalWebView" />
+        </Border>
+
+        <Border Grid.Row="3" Background="#1A1D24" Padding="10,7" BorderBrush="#2A2E38" BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Row="0" Grid.Column="0" Foreground="#C8CCD4" VerticalAlignment="Center" Text="正在初始化…" />
+                <TextBlock x:Name="VersionText" Grid.Row="0" Grid.Column="1" Foreground="#697386" VerticalAlignment="Center" Margin="10,0,0,0" />
+                <TextBlock x:Name="ApiText" Grid.Row="0" Grid.Column="2" Foreground="#8E96A5" VerticalAlignment="Center" Margin="10,0" />
+                <Button x:Name="CopyApiButton" Grid.Row="0" Grid.Column="3" Content="复制 API 信息" Padding="10,3" Click="CopyApiButton_Click" />
+
+                <TextBlock x:Name="SessionIdText" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                           Foreground="#8E96A5" VerticalAlignment="Center" Margin="0,7,10,0"
+                           FontFamily="Consolas" Text="Session ID：—" />
+                <Button x:Name="CopySessionIdButton" Grid.Row="1" Grid.Column="3" Margin="0,6,0,0"
+                        Content="复制 Session ID" Padding="10,3" IsEnabled="False"
+                        Click="CopySessionIdButton_Click" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
