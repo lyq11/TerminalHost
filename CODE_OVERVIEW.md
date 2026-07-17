@@ -56,6 +56,7 @@ TerminalHost/
 ├─ clients/
 │  ├─ powershell-client.ps1         # PowerShell API 示例
 │  └─ python-client.py              # Python API 示例
+├─ mcp/terminalhost-mcp/             # 标准 MCP 适配器（stdio / Streamable HTTP）
 ├─ scripts/
 │  ├─ build.ps1                     # Release 构建
 │  ├─ clean-build.ps1               # 清理 bin/obj 后构建
@@ -441,3 +442,16 @@ publish\win-x64\TerminalHost.exe
 5. `TerminalWebSocketServer.cs`：理解外部协议和事件广播。
 6. `wwwroot/app.js`：理解 UI 输入输出如何与 WPF 互通。
 7. `clients/`：参考外部调用方式。
+
+## 15. MCP 适配器
+
+`mcp/terminalhost-mcp` 是独立的 Node.js/TypeScript 服务，使用官方 MCP TypeScript SDK。它不改变 TerminalHost 的核心协议，而是在进程生命周期内维持一条共享 WebSocket 连接，并把现有能力暴露为带参数约束和安全提示的 MCP 工具。
+
+支持两种标准传输：
+
+- `stdio`：由 Codex、LM Studio、Claude Desktop、Cursor 等本地 MCP Host 启动。
+- Streamable HTTP：监听 `/mcp`，适合多个客户端共享一个常驻服务。
+
+`terminal_execute` 会按会话 shell 生成唯一完成标记，串行化同一会话中的并发命令，并返回输出、退出码、超时和截断状态。超时不会自动中断进程；交互程序应使用 `terminal_write` 与 `terminal_snapshot` 控制。
+
+完整说明和客户端配置见 `mcp/terminalhost-mcp/README.md`。

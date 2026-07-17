@@ -1,0 +1,33 @@
+{
+  "name": "@terminalhost/mcp-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standard MCP adapter for TerminalHost with persistent WebSocket connectivity.",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "bin": {
+    "terminalhost-mcp": "dist/src/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "start:stdio": "node dist/src/index.js --transport stdio",
+    "start:http": "node dist/src/index.js --transport http",
+    "test:protocol": "node scripts/protocol-smoke-test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "express": "5.2.1",
+    "ws": "8.21.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "24.0.13",
+    "@types/ws": "8.18.1",
+    "typescript": "5.8.3"
+  }
+}

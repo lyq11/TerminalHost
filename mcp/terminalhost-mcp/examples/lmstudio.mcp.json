@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "terminalhost": {
+      "command": "node",
+      "args": [
+        "C:\\path\\to\\TerminalHost\\mcp\\terminalhost-mcp\\dist\\src\\index.js",
+        "--transport",
+        "stdio"
+      ]
+    }
+  }
+}

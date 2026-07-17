@@ -211,3 +211,13 @@ $command = "go build .\\cmd\\server; `$ec=`$LASTEXITCODE; Write-Output '__TH_DON
 本版本目标框架为 `net6.0-windows`，并将 WebView2 SDK 固定为 `1.0.1518.46`，以适配 .NET SDK 6.0.200 这一代工具链，避免新版 WebView2 与旧版 `WinRT.Runtime` 引用混用。ConPTY 通过 P/Invoke 调用，不依赖 WinRT 投影。
 
 如果之前编译过旧包，请使用 `scripts\clean-build.ps1`，或手动删除 `bin`、`obj` 后重新还原。
+
+## MCP Server
+
+仓库包含独立的标准 MCP 适配器：`mcp\terminalhost-mcp`。它通过持久 WebSocket 连接复用 TerminalHost 会话，同时支持本地 `stdio` 和 Streamable HTTP，可供 Codex、LM Studio、Claude Desktop、Cursor 及其他兼容 MCP 的客户端调用。
+
+```powershell
+.\scripts\build-mcp.ps1
+```
+
+完整配置、工具和安全说明见 [`mcp/terminalhost-mcp/README.md`](mcp/terminalhost-mcp/README.md)。
