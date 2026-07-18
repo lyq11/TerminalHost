@@ -36,7 +36,7 @@
             <Setter Property="BorderBrush" Value="#334155" />
             <Setter Property="SelectionBrush" Value="#0369A1" />
         </Style>
-        <Style TargetType="ComboBox">
+        <Style TargetType="ComboBox" BasedOn="{StaticResource DarkComboBoxStyle}">
             <Setter Property="Background" Value="#475569" />
             <Setter Property="Foreground" Value="#F8FAFC" />
             <Setter Property="BorderBrush" Value="#475569" />
@@ -83,9 +83,7 @@
                                            IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
                                            PopupAnimation="Fade">
                                         <Border Background="#0F172A" BorderBrush="#334155" BorderThickness="1" Padding="3">
-                                            <ScrollViewer CanContentScroll="True">
-                                                <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
-                                            </ScrollViewer>
+                                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
                                         </Border>
                                     </Popup>
                                 </Grid>
@@ -101,13 +99,23 @@
                         </Setter.Value>
                     </Setter>
                 </Style>
-                <Style TargetType="Separator">
-                    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Separator"><Border Height="1" Margin="8,4" Background="#334155" /></ControlTemplate></Setter.Value></Setter>
+                <Style x:Key="FullWidthMenuSeparatorStyle" TargetType="Separator">
+                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Separator">
+                                <Grid MinWidth="96" Height="9">
+                                    <Border Height="1" Margin="8,4" Background="#334155"
+                                            HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
                 </Style>
             </Menu.Resources>
             <MenuItem Header="文件">
                 <MenuItem Header="设置..." Click="SettingsMenuItem_Click" />
-                <Separator />
+                <Separator Style="{StaticResource FullWidthMenuSeparatorStyle}" />
                 <MenuItem Header="退出" Click="ExitMenuItem_Click" />
             </MenuItem>
             <MenuItem Header="帮助">
@@ -129,12 +137,6 @@
                 </Grid.ColumnDefinitions>
 
                 <ComboBox x:Name="ShellComboBox" Grid.Column="0" Height="32" Margin="0,0,8,0" SelectedIndex="0">
-                    <ComboBox.Resources>
-                        <Style TargetType="ComboBoxItem">
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                            <Setter Property="VerticalContentAlignment" Value="Center" />
-                        </Style>
-                    </ComboBox.Resources>
                     <ComboBoxItem Content="PowerShell 7 (pwsh)" Tag="pwsh" />
                     <ComboBoxItem Content="Windows PowerShell 5.1" Tag="powershell" />
                     <ComboBoxItem Content="CMD" Tag="cmd" />
