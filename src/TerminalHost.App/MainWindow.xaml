@@ -30,6 +30,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <ComboBox x:Name="ShellComboBox" Grid.Column="0" Height="32" Margin="0,0,8,0" SelectedIndex="0">
@@ -49,6 +50,9 @@
                 <Button x:Name="StartButton" Grid.Column="2" Content="启动/重启" Height="32" Padding="14,0" Margin="0,0,8,0" Click="StartButton_Click" />
                 <Button x:Name="StopButton" Grid.Column="3" Content="停止" Height="32" Padding="14,0" Margin="0,0,8,0" Click="StopButton_Click" />
                 <Button x:Name="ClearButton" Grid.Column="4" Content="清屏" Height="32" Padding="14,0" Click="ClearButton_Click" />
+                <CheckBox x:Name="McpToggle" Grid.Column="5" Content="启用 MCP" Margin="14,0,2,0"
+                          VerticalAlignment="Center" Foreground="#D7DBE4"
+                          ToolTip="静默启动本机 HTTP MCP 服务（127.0.0.1:8766）" />
             </Grid>
         </Border>
 

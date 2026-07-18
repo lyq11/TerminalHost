@@ -8,25 +8,26 @@ Requirements
 
 Quick start
 -----------
-1. Run Start-TerminalHost.cmd.
+1. Run TerminalHost.exe. No command prompt window is opened.
 2. Select PowerShell, Windows PowerShell, or CMD in the application.
 3. Start a terminal session.
+
+Use the "Enable MCP" switch in TerminalHost to start or stop the bundled HTTP
+MCP service silently. The setting is remembered. Its endpoint is
+http://127.0.0.1:8766/mcp.
 
 MCP (Codex, LM Studio, Claude Desktop, Cursor, etc.)
 ---------------------------------------------------
 This package includes Node.js, compiled MCP code, and all production dependencies.
 No separate Node.js installation is required.
 
-For clients that launch a local stdio MCP server, use the absolute path to:
-
-  TerminalHost-MCP-stdio.cmd
-
 Example JSON configuration:
 
   {
     "mcpServers": {
       "terminalhost": {
-        "command": "C:\\absolute\\path\\TerminalHost-MCP-stdio.cmd"
+        "command": "C:\\absolute\\path\\TerminalHost.exe",
+        "args": ["--mcp-stdio"]
       }
     }
   }
@@ -36,13 +37,14 @@ Example Codex configuration (~/.codex/config.toml):
   [mcp_servers.terminalhost]
   enabled = true
   required = true
-  command = 'C:\absolute\path\TerminalHost-MCP-stdio.cmd'
+  command = 'C:\absolute\path\TerminalHost.exe'
+  args = ['--mcp-stdio']
   startup_timeout_sec = 15
   tool_timeout_sec = 600
 
-For clients that connect to an MCP URL:
-1. Run Start-MCP-HTTP.cmd after TerminalHost is running.
-2. Configure the client URL as http://127.0.0.1:8766/mcp
+For clients that connect to an MCP URL, run TerminalHost.exe, turn on "Enable
+MCP", and configure the client URL as http://127.0.0.1:8766/mcp. No separate
+MCP window is required.
 
 Security
 --------

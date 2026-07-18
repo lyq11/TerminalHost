@@ -3,19 +3,21 @@ using System.Text.Json;
 
 namespace TerminalHost.Infrastructure;
 
-public sealed record AppSettings(int ApiPort, string ApiToken)
+public sealed record AppSettings(int ApiPort, string ApiToken, bool McpEnabled = false)
 {
+    private static readonly string SettingsFolder =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TerminalHost");
+    private static readonly string SettingsPath = Path.Combine(SettingsFolder, "settings.json");
+
     public static AppSettings LoadOrCreate()
     {
-        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TerminalHost");
-        var path = Path.Combine(folder, "settings.json");
-        Directory.CreateDirectory(folder);
+        Directory.CreateDirectory(SettingsFolder);
 
         try
         {
-            if (File.Exists(path))
+            if (File.Exists(SettingsPath))
             {
-                var loaded = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path));
+                var loaded = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(SettingsPath));
                 if (loaded is { ApiPort: > 0, ApiToken.Length: > 20 }) return loaded;
             }
         }
@@ -26,8 +28,14 @@ public sealed record AppSettings(int ApiPort, string ApiToken)
 
         var bytes = RandomNumberGenerator.GetBytes(32);
         var token = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-        var settings = new AppSettings(8765, token);
-        File.WriteAllText(path, JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
+        var settings = new AppSettings(8765, token, false);
+        settings.Save();
         return settings;
+    }
+
+    public void Save()
+    {
+        Directory.CreateDirectory(SettingsFolder);
+        File.WriteAllText(SettingsPath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
     }
 }

@@ -9,8 +9,6 @@
     <AssemblyName>TerminalHost</AssemblyName>
     <RootNamespace>TerminalHost</RootNamespace>
     <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\terminalhost.ico</ApplicationIcon>
     <Platforms>AnyCPU;x64</Platforms>

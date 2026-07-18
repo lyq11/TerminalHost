@@ -19,9 +19,10 @@ public partial class MainWindow : Window
     private static readonly string DisplayVersion =
         typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
 
-    private readonly AppSettings _settings = AppSettings.LoadOrCreate();
+    private AppSettings _settings = AppSettings.LoadOrCreate();
     private readonly TerminalSessionManager _manager = new();
     private TerminalWebSocketServer? _server;
+    private BundledMcpHost? _mcpHost;
     private string? _activeSessionId;
     private bool _webReady;
     private bool _closing;
@@ -33,6 +34,9 @@ public partial class MainWindow : Window
         VersionText.Text = $"v{DisplayVersion}";
         RemoveUnavailableShells();
         WorkingDirectoryTextBox.Text = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        McpToggle.IsChecked = _settings.McpEnabled;
+        McpToggle.Checked += McpToggle_Changed;
+        McpToggle.Unchecked += McpToggle_Changed;
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
         _manager.OutputReceived += Manager_OutputReceived;
@@ -100,6 +104,8 @@ public partial class MainWindow : Window
         {
             _server = new TerminalWebSocketServer(_manager, _settings);
             await _server.StartAsync();
+            if (_settings.McpEnabled)
+                SetMcpEnabled(true, persist: false);
             await InitializeWebViewAsync();
             StatusText.Text = "API 已启动，等待终端页面就绪…";
         }
@@ -248,6 +254,50 @@ public partial class MainWindow : Window
 
     private void ClearButton_Click(object sender, RoutedEventArgs e) => PostToTerminal(new { type = "clear" });
 
+    private void McpToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        SetMcpEnabled(McpToggle.IsChecked == true, persist: true);
+    }
+
+    private void SetMcpEnabled(bool enabled, bool persist)
+    {
+        try
+        {
+            if (enabled && _mcpHost is null)
+            {
+                _mcpHost = BundledMcpHost.TryStartHttp();
+                if (_mcpHost is null)
+                    throw new FileNotFoundException("未找到内置 MCP 运行环境，请使用完整发布包。");
+                StatusText.Text = "MCP 已启用：http://127.0.0.1:8766/mcp";
+            }
+            else if (!enabled && _mcpHost is not null)
+            {
+                _mcpHost.Dispose();
+                _mcpHost = null;
+                StatusText.Text = "MCP 已关闭";
+            }
+
+            if (persist && _settings.McpEnabled != enabled)
+            {
+                _settings = _settings with { McpEnabled = enabled };
+                _settings.Save();
+            }
+        }
+        catch (Exception ex)
+        {
+            _mcpHost?.Dispose();
+            _mcpHost = null;
+            McpToggle.Checked -= McpToggle_Changed;
+            McpToggle.Unchecked -= McpToggle_Changed;
+            McpToggle.IsChecked = false;
+            McpToggle.Checked += McpToggle_Changed;
+            McpToggle.Unchecked += McpToggle_Changed;
+            _settings = _settings with { McpEnabled = false };
+            _settings.Save();
+            StatusText.Text = $"MCP 启动失败：{ex.Message}";
+        }
+    }
+
     private void ExitMenuItem_Click(object sender, RoutedEventArgs e) => Close();
 
     private void AboutMenuItem_Click(object sender, RoutedEventArgs e)
@@ -377,6 +427,8 @@ public partial class MainWindow : Window
         SetControlsEnabled(false);
         try
         {
+            _mcpHost?.Dispose();
+            _mcpHost = null;
             if (_server is not null) await _server.DisposeAsync();
             await _manager.DisposeAsync();
         }
