@@ -4,7 +4,44 @@
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="TerminalHost v1.0.0" Icon="Assets/terminalhost.ico" Width="1180" Height="760"
         MinWidth="760" MinHeight="480"
-        Background="#111318">
+        Background="#020617">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="#E2E8F0" />
+            <Setter Property="Background" Value="#1E293B" />
+            <Setter Property="BorderBrush" Value="#334155" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="#334155" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="#0F172A" /></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#0F172A" />
+            <Setter Property="Foreground" Value="#E2E8F0" />
+            <Setter Property="CaretBrush" Value="#38BDF8" />
+            <Setter Property="BorderBrush" Value="#334155" />
+            <Setter Property="SelectionBrush" Value="#0369A1" />
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#0F172A" />
+            <Setter Property="Foreground" Value="#E2E8F0" />
+            <Setter Property="BorderBrush" Value="#334155" />
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -13,24 +50,24 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Menu Grid.Row="0" Background="#111318" Foreground="#F4F6FA" Padding="4,2">
+        <Menu Grid.Row="0" Background="#0F172A" Foreground="#E2E8F0" Padding="4,2">
             <Menu.Resources>
-                <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#1A1D24" />
+                <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#0F172A" />
                 <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#F4F6FA" />
-                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#313744" />
+                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#075985" />
                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF" />
                 <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="#747C8C" />
                 <Style TargetType="MenuItem">
                     <Setter Property="Foreground" Value="#F4F6FA" />
-                    <Setter Property="Background" Value="#1A1D24" />
+                    <Setter Property="Background" Value="#0F172A" />
                     <Setter Property="Padding" Value="10,5" />
                     <Style.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
-                            <Setter Property="Background" Value="#313744" />
+                            <Setter Property="Background" Value="#075985" />
                             <Setter Property="Foreground" Value="#FFFFFF" />
                         </Trigger>
                         <Trigger Property="IsSubmenuOpen" Value="True">
-                            <Setter Property="Background" Value="#313744" />
+                            <Setter Property="Background" Value="#075985" />
                             <Setter Property="Foreground" Value="#FFFFFF" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
@@ -50,7 +87,7 @@
             </MenuItem>
         </Menu>
 
-        <Border Grid.Row="1" Background="#1A1D24" Padding="10" BorderBrush="#2A2E38" BorderThickness="0,1,0,1">
+        <Border Grid.Row="1" Background="#111827" Padding="10" BorderBrush="#334155" BorderThickness="0,1,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="170" />
@@ -81,30 +118,48 @@
                 <Button x:Name="StopButton" Grid.Column="4" Content="停止" Height="32" Padding="14,0" Margin="0,0,8,0" Click="StopButton_Click" />
                 <Button x:Name="ClearButton" Grid.Column="5" Content="清屏" Height="32" Padding="14,0" Click="ClearButton_Click" />
                 <CheckBox x:Name="McpToggle" Grid.Column="6" Content="启用 MCP" Margin="14,0,2,0"
-                          VerticalAlignment="Center" Foreground="#D7DBE4"
+                          VerticalAlignment="Center" Foreground="#CBD5E1"
                           ToolTip="静默启动本机 HTTP MCP 服务（127.0.0.1:8766）" />
             </Grid>
         </Border>
 
-        <TabControl x:Name="TerminalTabs" Grid.Row="2" Margin="0" Background="#0D0F13"
+        <TabControl x:Name="TerminalTabs" Grid.Row="2" Margin="0" Background="#020617"
                     BorderThickness="0" SelectionChanged="TerminalTabs_SelectionChanged">
             <TabControl.Resources>
                 <Style TargetType="TabItem">
-                    <Setter Property="Foreground" Value="#D7DBE4" />
-                    <Setter Property="Background" Value="#1A1D24" />
-                    <Setter Property="Padding" Value="14,7" />
-                    <Setter Property="BorderBrush" Value="#2A2E38" />
-                    <Style.Triggers>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Foreground" Value="#FFFFFF" />
-                            <Setter Property="Background" Value="#313744" />
-                        </Trigger>
-                    </Style.Triggers>
+                    <Setter Property="Foreground" Value="#CBD5E1" />
+                    <Setter Property="Background" Value="#111827" />
+                    <Setter Property="Padding" Value="15,8" />
+                    <Setter Property="BorderBrush" Value="#334155" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border x:Name="TabBorder" Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="0,0,1,1"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                      TextElement.Foreground="{TemplateBinding Foreground}" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="TabBorder" Property="Background" Value="#1E293B" />
+                                        <Setter Property="Foreground" Value="#FFFFFF" />
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="TabBorder" Property="Background" Value="#38BDF8" />
+                                        <Setter TargetName="TabBorder" Property="BorderBrush" Value="#38BDF8" />
+                                        <Setter Property="Foreground" Value="#082F49" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
                 </Style>
             </TabControl.Resources>
         </TabControl>
 
-        <Border Grid.Row="3" Background="#1A1D24" Padding="10,7" BorderBrush="#2A2E38" BorderThickness="0,1,0,0">
+        <Border Grid.Row="3" Background="#111827" Padding="10,7" BorderBrush="#334155" BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -116,13 +171,13 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBlock x:Name="StatusText" Grid.Row="0" Grid.Column="0" Foreground="#C8CCD4" VerticalAlignment="Center" Text="正在初始化…" />
-                <TextBlock x:Name="VersionText" Grid.Row="0" Grid.Column="1" Foreground="#697386" VerticalAlignment="Center" Margin="10,0,0,0" />
-                <TextBlock x:Name="ApiText" Grid.Row="0" Grid.Column="2" Foreground="#8E96A5" VerticalAlignment="Center" Margin="10,0" />
+                <TextBlock x:Name="StatusText" Grid.Row="0" Grid.Column="0" Foreground="#CBD5E1" VerticalAlignment="Center" Text="正在初始化…" />
+                <TextBlock x:Name="VersionText" Grid.Row="0" Grid.Column="1" Foreground="#64748B" VerticalAlignment="Center" Margin="10,0,0,0" />
+                <TextBlock x:Name="ApiText" Grid.Row="0" Grid.Column="2" Foreground="#94A3B8" VerticalAlignment="Center" Margin="10,0" />
                 <Button x:Name="CopyApiButton" Grid.Row="0" Grid.Column="3" Content="复制 API 信息" Padding="10,3" Click="CopyApiButton_Click" />
 
                 <TextBlock x:Name="SessionIdText" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
-                           Foreground="#8E96A5" VerticalAlignment="Center" Margin="0,7,10,0"
+                           Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,7,10,0"
                            FontFamily="Consolas" Text="Session ID：—" />
                 <Button x:Name="CopySessionIdButton" Grid.Row="1" Grid.Column="3" Margin="0,6,0,0"
                         Content="复制 Session ID" Padding="10,3" IsEnabled="False"

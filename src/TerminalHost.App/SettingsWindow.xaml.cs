@@ -25,6 +25,7 @@ public partial class SettingsWindow : Window
         McpPortBox.Text = settings.McpPort.ToString();
         McpTokenBox.Password = settings.McpAuthToken;
         AllowedDirectoriesBox.Text = string.Join(Environment.NewLine, settings.McpAllowedDirectories);
+        DangerousCommandsBox.Text = string.Join(Environment.NewLine, settings.DangerousCommandRules);
         ConfirmDangerousBox.IsChecked = settings.McpConfirmDangerousCommands;
         SelectByTag(DefaultShellBox, settings.DefaultShell);
         SelectByTag(ThemeBox, settings.TerminalTheme);
@@ -84,6 +85,10 @@ public partial class SettingsWindow : Window
 
         string[] tools = ToolListPanel.Children.OfType<CheckBox>()
             .Where(x => x.IsChecked == true).Select(x => (string)x.Tag).ToArray();
+        string[] dangerousRules = DangerousCommandsBox.Text
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim()).Where(x => x.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         UpdatedSettings = _settings with
         {
             ApiPort = apiPort,
@@ -100,7 +105,8 @@ public partial class SettingsWindow : Window
             McpAuthToken = McpTokenBox.Password.Trim(),
             McpAllowedTools = tools,
             McpAllowedDirectories = allowedDirectories,
-            McpConfirmDangerousCommands = ConfirmDangerousBox.IsChecked == true
+            McpConfirmDangerousCommands = ConfirmDangerousBox.IsChecked == true,
+            DangerousCommandRules = dangerousRules
         };
         DialogResult = true;
     }

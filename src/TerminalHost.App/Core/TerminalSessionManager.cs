@@ -35,6 +35,7 @@ public sealed class TerminalSessionManager : IAsyncDisposable
 
     public event EventHandler<TerminalOutputEvent>? OutputReceived;
     public event EventHandler<TerminalExitEvent>? SessionExited;
+    public event EventHandler<TerminalCreatedEvent>? SessionCreated;
 
     public async Task<TerminalSessionInfo> CreateAsync(TerminalCreateRequest request)
     {
@@ -72,6 +73,8 @@ public sealed class TerminalSessionManager : IAsyncDisposable
             entry.Info = entry.Info with { IsRunning = false };
             SessionExited?.Invoke(this, new TerminalExitEvent(id, code));
         };
+
+        SessionCreated?.Invoke(this, new TerminalCreatedEvent(info, request.CreatedByUi));
 
         return info;
     }

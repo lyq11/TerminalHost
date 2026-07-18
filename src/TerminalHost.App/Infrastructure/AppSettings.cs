@@ -13,6 +13,13 @@ public sealed record AppSettings
         "terminal_create_session", "terminal_write", "terminal_execute",
         "terminal_signal", "terminal_resize", "terminal_stop_session", "terminal_ping"
     };
+    public static readonly string[] DefaultDangerousCommandRules =
+    {
+        "rm *-rf*", "rm *-fr*", "Remove-Item *-Recurse*", "del */s*",
+        "rmdir */s*", "rd */s*", "format *", "diskpart*", "Clear-Disk*",
+        "Initialize-Disk*", "shutdown *", "Stop-Computer*", "Restart-Computer*",
+        "git reset *--hard*", "DROP DATABASE *", "DROP TABLE *"
+    };
 
     private static readonly string SettingsPath = ResolveSettingsPath();
     private static readonly string SettingsFolder = Path.GetDirectoryName(SettingsPath)!;
@@ -37,6 +44,7 @@ public sealed record AppSettings
     public string[] McpAllowedTools { get; init; } = AllMcpTools.ToArray();
     public string[] McpAllowedDirectories { get; init; } = Array.Empty<string>();
     public bool McpConfirmDangerousCommands { get; init; } = true;
+    public string[] DangerousCommandRules { get; init; } = DefaultDangerousCommandRules.ToArray();
 
     public static string FolderPath => SettingsFolder;
     public static string FilePath => SettingsPath;
@@ -114,7 +122,10 @@ public sealed record AppSettings
                     Directory.Exists(x.WorkingDirectory) ? x.WorkingDirectory : defaultDirectory))
                 .Take(20).ToArray() ?? Array.Empty<SessionProfile>(),
             McpAllowedTools = tools,
-            McpAllowedDirectories = settings.McpAllowedDirectories?.Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToArray() ?? Array.Empty<string>()
+            McpAllowedDirectories = settings.McpAllowedDirectories?.Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToArray() ?? Array.Empty<string>(),
+            DangerousCommandRules = settings.DangerousCommandRules?
+                .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToArray() ?? DefaultDangerousCommandRules.ToArray()
         };
     }
 }

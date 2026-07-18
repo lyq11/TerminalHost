@@ -74,6 +74,7 @@ public partial class MainWindow : Window
         Closing += MainWindow_Closing;
         _manager.OutputReceived += Manager_OutputReceived;
         _manager.SessionExited += Manager_SessionExited;
+        _manager.SessionCreated += Manager_SessionCreated;
         ApiText.Text = $"ws://127.0.0.1:{_settings.ApiPort}/ws";
         Width = _settings.WindowWidth;
         Height = _settings.WindowHeight;
@@ -170,7 +171,7 @@ public partial class MainWindow : Window
         if (item is not null) ShellComboBox.SelectedItem = item;
     }
 
-    private async Task<TerminalTabState> CreateTabAsync(SessionProfile profile)
+    private async Task<TerminalTabState> CreateTabAsync(SessionProfile profile, TerminalSessionInfo? existingSession = null)
     {
         var header = new TextBlock { Text = profile.Name };
         var webView = new WebView2();
@@ -183,7 +184,8 @@ public partial class MainWindow : Window
             Shell = profile.Shell,
             WorkingDirectory = Directory.Exists(profile.WorkingDirectory)
                 ? profile.WorkingDirectory
-                : _settings.DefaultWorkingDirectory
+                : _settings.DefaultWorkingDirectory,
+            SessionId = existingSession?.Id
         };
 
         header.MouseLeftButtonDown += (_, args) =>
@@ -269,7 +271,17 @@ public partial class MainWindow : Window
                 case "ready":
                     tab.WebReady = true;
                     ApplyTerminalAppearance(tab);
-                    await StartNewSessionAsync(tab);
+                    if (tab.SessionId is null)
+                    {
+                        await StartNewSessionAsync(tab);
+                    }
+                    else
+                    {
+                        PostToTerminal(tab, new { type = "reset" });
+                        PostToTerminal(tab, new { type = "output", data = _manager.GetSnapshot(tab.SessionId) });
+                        PostToTerminal(tab, new { type = "focus" });
+                        if (ReferenceEquals(tab, ActiveTab)) UpdateSessionId(tab.SessionId);
+                    }
                     break;
                 case "input":
                     if (tab.SessionId is not null && root.TryGetProperty("data", out var data))
@@ -313,7 +325,8 @@ public partial class MainWindow : Window
                 shell,
                 workingDirectory,
                 120,
-                30));
+                30,
+                CreatedByUi: true));
             tab.SessionId = info.Id;
             tab.Shell = info.Shell;
             tab.WorkingDirectory = info.WorkingDirectory;
@@ -349,6 +362,22 @@ public partial class MainWindow : Window
         {
             var tab = _tabs.FirstOrDefault(x => string.Equals(x.SessionId, e.SessionId, StringComparison.OrdinalIgnoreCase));
             if (tab is not null) PostToTerminal(tab, new { type = "output", data = e.Data });
+        });
+    }
+
+    private void Manager_SessionCreated(object? sender, TerminalCreatedEvent e)
+    {
+        if (e.CreatedByUi || _closing) return;
+        Dispatcher.BeginInvoke(async () =>
+        {
+            if (_tabs.Any(x => string.Equals(x.SessionId, e.Session.Id, StringComparison.OrdinalIgnoreCase))) return;
+            int number = 1;
+            while (_tabs.Any(x => x.Name == $"MCP {number}")) number++;
+            var tab = await CreateTabAsync(
+                new SessionProfile($"MCP {number}", e.Session.Shell, e.Session.WorkingDirectory),
+                e.Session);
+            TerminalTabs.SelectedItem = tab.Item;
+            AppLog.Info($"MCP/API 会话已显示为标签：{e.Session.Id}");
         });
     }
 
@@ -611,6 +640,7 @@ public partial class MainWindow : Window
         report.AppendLine($"MCP: enabled={_settings.McpEnabled}, transport={_settings.McpTransport}, port={_settings.McpPort}, authToken={(string.IsNullOrEmpty(_settings.McpAuthToken) ? "none" : "configured")}");
         report.AppendLine($"MCP tools: {string.Join(", ", _settings.McpAllowedTools)}");
         report.AppendLine($"Allowed directories: {(_settings.McpAllowedDirectories.Length == 0 ? "unrestricted" : string.Join("; ", _settings.McpAllowedDirectories))}");
+        report.AppendLine($"Dangerous command rules: {(_settings.DangerousCommandRules.Length == 0 ? "none" : string.Join("; ", _settings.DangerousCommandRules))}");
         report.AppendLine();
         report.AppendLine("Sessions:");
         foreach (var session in _manager.List())

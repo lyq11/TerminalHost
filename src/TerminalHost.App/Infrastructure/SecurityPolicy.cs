@@ -4,13 +4,17 @@ namespace TerminalHost.Infrastructure;
 
 public sealed class SecurityPolicy
 {
-    private static readonly Regex DangerousCommandPattern = new(
-        @"(^|[;&|]\s*)(rm\s+-[^\r\n]*r[^\r\n]*f|remove-item\b[^\r\n]*-recurse|del\s+[^\r\n]*/s|rmdir\s+[^\r\n]*/s|rd\s+[^\r\n]*/s|format\b|diskpart\b|shutdown\b|stop-computer\b|restart-computer\b|git\s+reset\s+--hard|drop\s+(database|table)\b)",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
     private readonly AppSettings _settings;
+    private readonly Regex[] _dangerousCommandPatterns;
 
-    public SecurityPolicy(AppSettings settings) => _settings = settings;
+    public SecurityPolicy(AppSettings settings)
+    {
+        _settings = settings;
+        _dangerousCommandPatterns = settings.DangerousCommandRules
+            .Select(rule => new Regex(Regex.Escape(rule).Replace("\\*", ".*"),
+                RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            .ToArray();
+    }
 
     public void AuthorizeMcp(string tool, string? workingDirectory, string? command, bool dangerousConfirmed)
     {
@@ -21,7 +25,7 @@ public sealed class SecurityPolicy
             ValidateWorkingDirectory(workingDirectory);
 
         if (_settings.McpConfirmDangerousCommands && !string.IsNullOrWhiteSpace(command) &&
-            DangerousCommandPattern.IsMatch(command) && !dangerousConfirmed)
+            _dangerousCommandPatterns.Any(pattern => pattern.IsMatch(command)) && !dangerousConfirmed)
         {
             throw new UnauthorizedAccessException("检测到危险命令；请在工具调用中明确设置 confirmDangerous=true。 ");
         }
