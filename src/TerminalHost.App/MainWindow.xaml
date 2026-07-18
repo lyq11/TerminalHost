@@ -13,7 +13,32 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Menu Grid.Row="0" Background="#111318" Foreground="#D7DBE4" Padding="4,2">
+        <Menu Grid.Row="0" Background="#111318" Foreground="#F4F6FA" Padding="4,2">
+            <Menu.Resources>
+                <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#1A1D24" />
+                <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#F4F6FA" />
+                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#313744" />
+                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF" />
+                <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="#747C8C" />
+                <Style TargetType="MenuItem">
+                    <Setter Property="Foreground" Value="#F4F6FA" />
+                    <Setter Property="Background" Value="#1A1D24" />
+                    <Setter Property="Padding" Value="10,5" />
+                    <Style.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter Property="Background" Value="#313744" />
+                            <Setter Property="Foreground" Value="#FFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsSubmenuOpen" Value="True">
+                            <Setter Property="Background" Value="#313744" />
+                            <Setter Property="Foreground" Value="#FFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="#747C8C" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Menu.Resources>
             <MenuItem Header="文件">
                 <MenuItem Header="退出" Click="ExitMenuItem_Click" />
             </MenuItem>
