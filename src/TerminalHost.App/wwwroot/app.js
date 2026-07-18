@@ -40,6 +40,14 @@
       case 'clear': term.clear(); break;
       case 'reset': term.reset(); break;
       case 'focus': term.focus(); break;
+      case 'configure':
+        term.options.fontFamily = message.fontFamily || 'Cascadia Mono, Consolas, monospace';
+        term.options.fontSize = Number(message.fontSize) || 14;
+        term.options.theme = message.theme === 'light'
+          ? { background: '#f7f8fa', foreground: '#20242c', cursor: '#20242c', selectionBackground: '#9bbcf066' }
+          : { background: '#0d0f13', foreground: '#d9dde6', cursor: '#d9dde6', selectionBackground: '#3b4252aa' };
+        resize();
+        break;
     }
   });
 

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using TerminalHost.Infrastructure;
 
 namespace TerminalHost.Core;
 
@@ -16,18 +17,34 @@ internal sealed class BundledMcpHost : IDisposable
         _process = process;
     }
 
-    public static BundledMcpHost? TryStartHttp()
+    public static BundledMcpHost? TryStartHttp(AppSettings settings)
     {
         if (!TryResolveBundle(out string nodePath, out string serverPath))
             return null;
 
-        Process process = StartNode(nodePath, serverPath, redirectStreams: true,
-            "--transport", "http", "--host", "127.0.0.1", "--port", "8766");
+        var arguments = new List<string>
+        {
+            "--transport", "http", "--host", "127.0.0.1", "--port", settings.McpPort.ToString()
+        };
+        if (!string.IsNullOrWhiteSpace(settings.McpAuthToken))
+        {
+            arguments.Add("--auth-token");
+            arguments.Add(settings.McpAuthToken);
+        }
 
-        process.OutputDataReceived += (_, _) => { };
-        process.ErrorDataReceived += (_, _) => { };
+        Process process = StartNode(nodePath, serverPath, redirectStreams: true, arguments.ToArray());
+
+        process.OutputDataReceived += (_, e) => { if (!string.IsNullOrWhiteSpace(e.Data)) AppLog.Info($"MCP: {e.Data}"); };
+        process.ErrorDataReceived += (_, e) => { if (!string.IsNullOrWhiteSpace(e.Data)) AppLog.Info($"MCP: {e.Data}"); };
+        process.EnableRaisingEvents = true;
+        process.Exited += (_, _) =>
+        {
+            try { AppLog.Info($"内置 MCP 进程已退出，ExitCode={process.ExitCode}。"); }
+            catch (InvalidOperationException) { }
+        };
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
+        AppLog.Info($"内置 MCP HTTP 服务已启动，端口 {settings.McpPort}。");
         return new BundledMcpHost(process);
     }
 
@@ -59,6 +76,7 @@ internal sealed class BundledMcpHost : IDisposable
         {
             if (!_process.HasExited)
                 _process.Kill(entireProcessTree: true);
+            AppLog.Info("内置 MCP 服务已停止。");
         }
         catch (InvalidOperationException)
         {

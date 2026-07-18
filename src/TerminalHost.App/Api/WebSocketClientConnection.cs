@@ -7,10 +7,26 @@ namespace TerminalHost.Api;
 internal sealed class WebSocketClientConnection : IAsyncDisposable
 {
     private readonly SemaphoreSlim _sendLock = new(1, 1);
+    private readonly Dictionary<string, DateTimeOffset> _mcpGrants = new(StringComparer.OrdinalIgnoreCase);
     internal Guid Id { get; } = Guid.NewGuid();
     internal WebSocket Socket { get; }
+    internal bool IsMcp { get; set; }
 
     internal WebSocketClientConnection(WebSocket socket) => Socket = socket;
+
+    internal void GrantMcpTool(string tool)
+    {
+        lock (_mcpGrants) _mcpGrants[tool] = DateTimeOffset.UtcNow.AddMinutes(10);
+    }
+
+    internal bool HasMcpGrant(params string[] tools)
+    {
+        if (!IsMcp) return true;
+        lock (_mcpGrants)
+        {
+            return tools.Any(tool => _mcpGrants.TryGetValue(tool, out var expires) && expires > DateTimeOffset.UtcNow);
+        }
+    }
 
     internal async Task SendJsonAsync(object value, CancellationToken cancellationToken = default)
     {

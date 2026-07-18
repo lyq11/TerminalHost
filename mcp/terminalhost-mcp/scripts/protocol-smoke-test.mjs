@@ -20,9 +20,9 @@ function assertTools(tools) {
 async function exercise(client, label) {
   const toolCount = assertTools(await client.listTools());
   const ping = await client.callTool({ name: "terminal_ping", arguments: {} });
-  if (ping.isError) throw new Error(`${label} terminal_ping failed`);
+  if (ping.isError) throw new Error(`${label} terminal_ping failed: ${JSON.stringify(ping)}`);
   const sessions = await client.callTool({ name: "terminal_list_sessions", arguments: {} });
-  if (sessions.isError) throw new Error(`${label} terminal_list_sessions failed`);
+  if (sessions.isError) throw new Error(`${label} terminal_list_sessions failed: ${JSON.stringify(sessions)}`);
   console.log(`${label}: ${toolCount} tools, ping ok, session listing ok`);
 }
 
@@ -65,6 +65,19 @@ function parseToolJson(response) {
 
 async function exerciseCreatedCmdSession(client) {
   if (process.env.TERMINALHOST_TEST_CREATE_CMD !== "1") return;
+  if (process.env.TERMINALHOST_TEST_SECURITY === "1") {
+    let directoryWasBlocked = false;
+    try {
+      const blockedDirectory = await client.callTool({
+        name: "terminal_create_session",
+        arguments: { shell: "cmd", cwd: "C:\\", cols: 100, rows: 25 }
+      });
+      directoryWasBlocked = blockedDirectory.isError === true;
+    } catch {
+      directoryWasBlocked = true;
+    }
+    if (!directoryWasBlocked) throw new Error("MCP allowed-directory policy did not block C:\\.");
+  }
   const createdResponse = await client.callTool({
     name: "terminal_create_session",
     arguments: { shell: "cmd", cwd: root, cols: 100, rows: 25 }
@@ -84,6 +97,21 @@ async function exerciseCreatedCmdSession(client) {
       throw new Error(`CMD integration result was invalid: ${JSON.stringify(result)}`);
     }
     console.log("terminal_execute: CMD marker and exit code ok");
+
+    if (process.env.TERMINALHOST_TEST_SECURITY === "1") {
+      let commandWasBlocked = false;
+      try {
+        const blockedCommand = await client.callTool({
+          name: "terminal_execute",
+          arguments: { sessionId, command: "rd /s /q Z:\\terminalhost-policy-test", timeoutMs: 5_000 }
+        });
+        commandWasBlocked = blockedCommand.isError === true;
+      } catch {
+        commandWasBlocked = true;
+      }
+      if (!commandWasBlocked) throw new Error("Dangerous-command policy did not require confirmation.");
+      console.log("security-policy: directory boundary and dangerous-command confirmation ok");
+    }
   } finally {
     await client.callTool({
       name: "terminal_stop_session",
@@ -96,7 +124,8 @@ async function testStdio() {
   const transport = new StdioClientTransport({
     command: nodeCommand,
     args: [entry, "--transport", "stdio"],
-    stderr: "pipe"
+    env: { ...process.env },
+    stderr: "inherit"
   });
   const client = new Client({ name: "terminalhost-mcp-smoke-stdio", version: "1.0.0" });
   try {

@@ -205,6 +205,8 @@ Equivalent CLI flags are available: `--transport`, `--host`, `--port`, `--auth-t
 - The MCP Bearer token is separate from the TerminalHost WebSocket token.
 - All terminal mutation tools can execute code with the permissions of the TerminalHost process.
 - `terminal_stop_session` requires an explicit `confirm=true` argument.
+- TerminalHost **File > Settings > Security** can disable individual MCP tools, restrict initial working directories, and require `confirmDangerous=true` for commands matching the dangerous-operation policy.
+- Authorization decisions and terminal mutations are recorded in the local TerminalHost audit log and exposed through the redacted diagnostics window.
 
 Example network-enabled startup:
 

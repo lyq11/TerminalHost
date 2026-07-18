@@ -9,19 +9,41 @@ function asToolResult(value: unknown) {
   };
 }
 
+function asToolError(error: unknown) {
+  return {
+    content: [{ type: "text" as const, text: error instanceof Error ? error.message : String(error) }],
+    isError: true
+  };
+}
+
 export function createTerminalHostMcpServer(client: TerminalHostClient): McpServer {
   const server = new McpServer({
     name: "terminalhost-mcp",
-    version: "1.0.0"
+    version: "1.2.0"
   });
   const executor = new TerminalCommandExecutor(client);
+  const authorize = async (
+    tool: string,
+    fields: { cwd?: string; command?: string; confirmDangerous?: boolean } = {}
+  ) => {
+    try {
+      await client.request("authorize", { tool, ...fields });
+      return undefined;
+    } catch (error) {
+      return asToolError(error);
+    }
+  };
 
   server.registerTool("terminal_list_sessions", {
     title: "List TerminalHost sessions",
     description: "List all GUI and background TerminalHost sessions, including shell, working directory, size, and running state.",
     inputSchema: {},
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
-  }, async () => asToolResult({ sessions: await client.listSessions() }));
+  }, async () => {
+    const denied = await authorize("terminal_list_sessions");
+    if (denied) return denied;
+    return asToolResult({ sessions: await client.listSessions() });
+  });
 
   server.registerTool("terminal_get_session", {
     title: "Get a TerminalHost session",
@@ -30,7 +52,11 @@ export function createTerminalHostMcpServer(client: TerminalHostClient): McpServ
       sessionId: z.string().min(1).describe("TerminalHost session ID")
     },
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
-  }, async ({ sessionId }) => asToolResult({ session: await client.findSession(sessionId) }));
+  }, async ({ sessionId }) => {
+    const denied = await authorize("terminal_get_session");
+    if (denied) return denied;
+    return asToolResult({ session: await client.findSession(sessionId) });
+  });
 
   server.registerTool("terminal_snapshot", {
     title: "Read terminal output snapshot",
@@ -41,6 +67,8 @@ export function createTerminalHostMcpServer(client: TerminalHostClient): McpServ
     },
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
   }, async ({ sessionId, maxChars }) => {
+    const denied = await authorize("terminal_snapshot");
+    if (denied) return denied;
     await client.findSession(sessionId);
     const response = await client.request("snapshot", { sessionId });
     const full = String(response.data ?? "");
@@ -59,6 +87,8 @@ export function createTerminalHostMcpServer(client: TerminalHostClient): McpServ
     },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }
   }, async ({ shell, cwd, cols, rows }) => {
+    const denied = await authorize("terminal_create_session", { cwd });
+    if (denied) return denied;
     const response = await client.request("create", { shell, cwd, cols, rows });
     return asToolResult({ session: normalizeSession(response.session) });
   });
@@ -68,10 +98,13 @@ export function createTerminalHostMcpServer(client: TerminalHostClient): McpServ
     description: "Write raw input to a running TerminalHost session. Add \\r to submit a command. This only confirms input acceptance and does not wait for completion.",
     inputSchema: {
       sessionId: z.string().min(1),
-      data: z.string().min(1).describe("Raw terminal input, including control characters when needed")
+      data: z.string().min(1).describe("Raw terminal input, including control characters when needed"),
+      confirmDangerous: z.boolean().default(false).describe("Set true when intentionally submitting input that matches a dangerous-command policy")
     },
     annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }
-  }, async ({ sessionId, data }) => {
+  }, async ({ sessionId, data, confirmDangerous }) => {
+    const denied = await authorize("terminal_write", { command: data, confirmDangerous });
+    if (denied) return denied;
     const session = await client.findSession(sessionId);
     if (!session.isRunning) throw new Error(`Terminal session is not running: ${sessionId}`);
     await client.request("write", { sessionId, data });
@@ -86,10 +119,13 @@ export function createTerminalHostMcpServer(client: TerminalHostClient): McpServ
       command: z.string().min(1).describe("PowerShell or CMD command matching the session shell"),
       timeoutMs: z.number().int().min(100).max(600_000).default(120_000),
       maxOutputChars: z.number().int().min(1_000).max(1_000_000).default(200_000),
-      plainText: z.boolean().default(true).describe("Strip ANSI/VT control sequences from the primary output field; rawOutput is always preserved")
+      plainText: z.boolean().default(true).describe("Strip ANSI/VT control sequences from the primary output field; rawOutput is always preserved"),
+      confirmDangerous: z.boolean().default(false).describe("Set true to confirm a command blocked by the TerminalHost dangerous-command policy")
     },
     annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }
-  }, async ({ sessionId, command, timeoutMs, maxOutputChars, plainText }) => {
+  }, async ({ sessionId, command, timeoutMs, maxOutputChars, plainText, confirmDangerous }) => {
+    const denied = await authorize("terminal_execute", { command, confirmDangerous });
+    if (denied) return denied;
     return asToolResult(await executor.execute(sessionId, command, timeoutMs, maxOutputChars, plainText));
   });
 
@@ -102,6 +138,8 @@ export function createTerminalHostMcpServer(client: TerminalHostClient): McpServ
     },
     annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }
   }, async ({ sessionId, signal }) => {
+    const denied = await authorize("terminal_signal");
+    if (denied) return denied;
     await client.findSession(sessionId);
     await client.request("signal", { sessionId, signal });
     return asToolResult({ ok: true, sessionId, signal });
@@ -117,6 +155,8 @@ export function createTerminalHostMcpServer(client: TerminalHostClient): McpServ
     },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }
   }, async ({ sessionId, cols, rows }) => {
+    const denied = await authorize("terminal_resize");
+    if (denied) return denied;
     await client.findSession(sessionId);
     await client.request("resize", { sessionId, cols, rows });
     return asToolResult({ ok: true, sessionId, cols, rows });
@@ -133,6 +173,8 @@ export function createTerminalHostMcpServer(client: TerminalHostClient): McpServ
     },
     annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }
   }, async ({ sessionId, graceful, remove }) => {
+    const denied = await authorize("terminal_stop_session");
+    if (denied) return denied;
     await client.findSession(sessionId);
     await client.request("stop", { sessionId, graceful, remove }, graceful ? 10_000 : 5_000);
     return asToolResult({ ok: true, sessionId, graceful, remove });
@@ -143,7 +185,11 @@ export function createTerminalHostMcpServer(client: TerminalHostClient): McpServ
     description: "Check the persistent WebSocket connection to TerminalHost and return the service timestamp.",
     inputSchema: {},
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
-  }, async () => asToolResult(await client.request("ping")));
+  }, async () => {
+    const denied = await authorize("terminal_ping");
+    if (denied) return denied;
+    return asToolResult(await client.request("ping"));
+  });
 
   return server;
 }

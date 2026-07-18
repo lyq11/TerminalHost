@@ -91,6 +91,7 @@ export class TerminalHostClient extends EventEmitter {
           clearTimeout(handshakeTimer);
           this.socket = socket;
           this.initialSessions = (message.sessions ?? []).map(normalizeSession);
+          socket.send(JSON.stringify({ action: "identify", requestId: `identify-${randomUUID()}`, client: "mcp" }));
           resolve();
           return;
         }
@@ -132,7 +133,12 @@ export class TerminalHostClient extends EventEmitter {
     }
 
     this.emit("message", message);
-    this.emit(message.type, message);
+    // EventEmitter treats the name "error" specially and terminates the
+    // process when it has no listener. Request errors are already delivered to
+    // the matching pending promise above, so only emit a standalone error event
+    // when a consumer explicitly subscribed to it.
+    if (message.type !== "error" || this.listenerCount("error") > 0)
+      this.emit(message.type, message);
   }
 
   async request(action: string, fields: Record<string, unknown> = {}, timeoutMs = 30_000): Promise<TerminalHostMessage> {
