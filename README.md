@@ -4,6 +4,21 @@
 
 > 本项目不嵌入 `wt.exe`。Windows Terminal 是另一个 ConPTY 宿主，本项目直接取代它的宿主层。
 
+## 为什么不直接使用 Codex / Claude 的内置终端
+
+TerminalHost **不是为了替代** Codex、Claude Code 的原生 Shell/Bash 工具。执行一次构建、测试或 Git 命令时，原生工具路径更短，也不需要额外服务。TerminalHost 主要解决的是：让多个支持 MCP 的客户端通过统一接口访问同一组 Windows ConPTY 会话，并让这些会话在独立 GUI 中可见、可重连、可审计。
+
+| 对比项 | Codex / Claude 原生终端工具 | TerminalHost MCP |
+| --- | --- | --- |
+| 接入方式 | 客户端内置、开箱即用 | 标准 MCP：stdio 或 Streamable HTTP |
+| 会话归属 | 归当前 Agent/客户端管理 | 归独立 TerminalHost 进程管理 |
+| 跨客户端复用 | 通常与当前客户端绑定 | Codex、Claude、LM Studio 等可使用同一套工具和 Session ID |
+| 人工可见性 | 主要在 Agent 的执行记录或集成终端中查看 | 独立 GUI 标签页实时显示，可由人和 Agent 共同操作 |
+| Windows 交互终端 | 由各客户端自己的执行层决定 | 直接使用 ConPTY，支持 VT、控制键、调整尺寸和交互程序 |
+| 额外开销 | 最低，适合一次性命令 | 多一层 MCP/WebSocket，适合共享或长生命周期会话 |
+
+完整说明、适用场景和安全边界见：**[TerminalHost 与 Codex / Claude 原生终端调用对比](docs/TERMINAL_COMPARISON.md)**。
+
 ## 架构
 
 ```text
@@ -196,12 +211,14 @@ $command = "go build .\\cmd\\server; `$ec=`$LASTEXITCODE; Write-Output '__TH_DON
 - 使用随机令牌，并以固定时间方式比较。
 - 默认按当前用户普通权限启动，不自动 UAC 提权。
 - 限制 shell 类型，不允许 API 直接指定任意可执行文件。
+- MCP 工具允许列表、允许工作目录和可编辑危险命令规则。
+- 危险命令可要求显式 `confirmDangerous=true`，MCP 授权及写入操作写入审计日志。
 
-生产化建议增加：命令审计、目录白名单、客户端权限分级、令牌轮换、危险命令审批和 Windows ACL Named Pipe 通道。
+需要注意：工作目录限制只约束会话创建时的初始目录，Shell 启动后仍拥有当前 Windows 用户权限。若要在多人或高风险环境使用，仍建议增加操作系统级隔离、客户端身份分级、令牌轮换和 Windows ACL Named Pipe 通道。
 
 ## 已知边界
 
-- GUI 当前显示一个“活动会话”，WebSocket API 可同时创建多个后台会话。
+- GUI 支持多标签会话；通过 MCP 或 WebSocket API 创建的会话也会自动显示为标签页。
 - 本项目不承载 Windows Terminal 的标签页和配置；它实现的是自己的 Terminal。
 - 宿主与被启动的 shell 权限一致。需要管理员 shell 时，应以管理员身份启动整个 TerminalHost。
 - ConPTY 输出本来就是 UTF-8 + VT 序列，外部程序若要显示完整终端画面，也需要终端解析器。
